@@ -95,17 +95,30 @@ namespace DepartmentEmployeesExample.Controllers
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"SELECT Id, DeptName FROM Department WHERE Id = @id";
+                    cmd.CommandText = @"SELECT e.FirstName, e.LastName, e.Id as EmployeeId, d.DeptName, d.Id
+                                        FROM Department d
+                                        LEFT JOIN Employee e ON d.Id = e.DepartmentId
+                                        WHERE d.Id = @id;";
                     cmd.Parameters.Add(new SqlParameter("@id", id));
                     SqlDataReader reader = cmd.ExecuteReader();
                     Department department = null;
-                    if (reader.Read())
+                    while (reader.Read())
                     {
-                        department = new Department
+                        if (department == null)
                         {
-                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                            DeptName = reader.GetString(reader.GetOrdinal("DeptName")),
-                        };
+                            department = new Department
+                            {
+                                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                                DeptName = reader.GetString(reader.GetOrdinal("DeptName")),
+                            };
+                        }
+
+                        department.Employees.Add(new Employee()
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("EmployeeId")),
+                            FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                            LastName = reader.GetString(reader.GetOrdinal("LastName"))
+                        });
                     }
                     reader.Close();
                     return Ok(department);

@@ -55,7 +55,7 @@ namespace DepartmentEmployeesExample.Controllers
 
                             var hasEmployee = !reader.IsDBNull(reader.GetOrdinal("EmployeeId"));
 
-                            if(hasEmployee)
+                            if (hasEmployee)
                             {
                                 department.Employees.Add(new Employee()
                                 {
@@ -125,6 +125,43 @@ namespace DepartmentEmployeesExample.Controllers
                 }
             }
         }
+
+        //custom route
+
+        [HttpGet]
+        [Route("employeeCount")]
+        public async Task<IActionResult> GetEmployeeCount()
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT d.DeptName, d.Id, COUNT(e.Id) as EmployeeCount
+                                        FROM Department d
+                                        LEFT JOIN Employee e ON d.Id = e.DepartmentId
+                                        GROUP BY d.DeptName, d.Id";
+                    
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    var deptEmpCount = new List<DepartmentEmployeeCount>();
+                    while (reader.Read())
+                    {
+                        deptEmpCount.Add(new DepartmentEmployeeCount
+                        {
+                            DepartmentId = reader.GetInt32(reader.GetOrdinal("Id")),
+                            DepartmentName = reader.GetString(reader.GetOrdinal("DeptName")),
+                            EmployeeCount = reader.GetInt32(reader.GetOrdinal("EmployeeCount"))
+                        });
+
+                        
+                    }
+                    reader.Close();
+                    return Ok(deptEmpCount);
+                }
+            }
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Department department)
         {

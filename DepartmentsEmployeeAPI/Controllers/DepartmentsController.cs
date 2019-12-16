@@ -142,7 +142,7 @@ namespace DepartmentEmployeesExample.Controllers
                                         LEFT JOIN Employee e ON d.Id = e.DepartmentId
                                         GROUP BY d.DeptName, d.Id";
                     
-                    SqlDataReader reader = cmd.ExecuteReader();
+                    SqlDataReader reader = await cmd.ExecuteReaderAsync();
                     var deptEmpCount = new List<DepartmentEmployeeCount>();
                     while (reader.Read())
                     {

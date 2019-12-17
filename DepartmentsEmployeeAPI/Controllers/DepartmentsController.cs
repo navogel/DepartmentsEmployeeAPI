@@ -9,6 +9,7 @@ using DepartmentsEmployeeAPI.Models;
 using Microsoft.AspNetCore.Http;
 namespace DepartmentEmployeesExample.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class DepartmentController : ControllerBase
@@ -25,6 +26,12 @@ namespace DepartmentEmployeesExample.Controllers
                 return new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             }
         }
+
+
+        /// <summary>
+        /// Gets a list of all departments from database
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<IActionResult> Get()
         {
@@ -36,7 +43,7 @@ namespace DepartmentEmployeesExample.Controllers
                     cmd.CommandText = @"SELECT d.Id, d.DeptName, e.FirstName, e.LastName, e.DepartmentId, e.Id as EmployeeId
                                         FROM Department d
                                         LEFT JOIN Employee e ON d.Id = e.DepartmentId";
-                    SqlDataReader reader = cmd.ExecuteReader();
+                    SqlDataReader reader = await cmd.ExecuteReaderAsync();
                     List<Department> departments = new List<Department>();
                     while (reader.Read())
                     {
@@ -100,7 +107,7 @@ namespace DepartmentEmployeesExample.Controllers
                                         LEFT JOIN Employee e ON d.Id = e.DepartmentId
                                         WHERE d.Id = @id;";
                     cmd.Parameters.Add(new SqlParameter("@id", id));
-                    SqlDataReader reader = cmd.ExecuteReader();
+                    SqlDataReader reader = await cmd.ExecuteReaderAsync();
                     Department department = null;
                     while (reader.Read())
                     {
@@ -174,7 +181,7 @@ namespace DepartmentEmployeesExample.Controllers
                                         OUTPUT INSERTED.Id
                                         VALUES (@DeptName)";
                     cmd.Parameters.Add(new SqlParameter("@DeptName", department.DeptName));
-                    int newId = (int)cmd.ExecuteScalar();
+                    int newId = (int) await cmd.ExecuteScalarAsync();
                     department.Id = newId;
                     return CreatedAtRoute("GetDepartment", new { id = newId }, department);
                 }
@@ -192,7 +199,7 @@ namespace DepartmentEmployeesExample.Controllers
                     {
                         cmd.CommandText = @"DELETE FROM Department WHERE Id = @id";
                         cmd.Parameters.Add(new SqlParameter("@id", id));
-                        int rowsAffected = cmd.ExecuteNonQuery();
+                        int rowsAffected = await cmd.ExecuteNonQueryAsync();
                         if (rowsAffected > 0)
                         {
                             return new StatusCodeResult(StatusCodes.Status204NoContent);
@@ -203,7 +210,8 @@ namespace DepartmentEmployeesExample.Controllers
             }
             catch (Exception)
             {
-                if (!DepartmentExists(id))
+                bool exists = await DepartmentExists(id);
+                if (!exists)
                 {
                     return NotFound();
                 }
@@ -213,7 +221,7 @@ namespace DepartmentEmployeesExample.Controllers
                 }
             }
         }
-        private bool DepartmentExists(int id)
+        private async Task<bool> DepartmentExists(int id)
         {
             using (SqlConnection conn = Connection)
             {
@@ -222,7 +230,7 @@ namespace DepartmentEmployeesExample.Controllers
                 {
                     cmd.CommandText = @"SELECT Id FROM Department WHERE Id = @id";
                     cmd.Parameters.Add(new SqlParameter("@id", id));
-                    SqlDataReader reader = cmd.ExecuteReader();
+                    SqlDataReader reader = await cmd.ExecuteReaderAsync();
                     return reader.Read();
                 }
             }
